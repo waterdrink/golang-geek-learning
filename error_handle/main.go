@@ -12,8 +12,42 @@ import (
 var db *sql.DB
 
 func main() {
-	fmt.Println(getUsernameWithId(123))
+	name, err := getUsernameWithId(123)
+	if nil != err {
+		if isNoUser(err) {
+			// do something
+			fmt.Printf("%v\n", err)
+			return
+		}
+		// do other thing
+		fmt.Printf("%v\n", err)
+		return
+	}
+	fmt.Println("success: ", name)
+}
 
+type ErrNoUser struct {
+	userId int
+}
+
+func (e *ErrNoUser) Error() string {
+	return fmt.Sprintf("no user with id %d", e.userId)
+}
+
+func (e *ErrNoUser) isNoUser() bool {
+	return true
+}
+
+type noUser interface {
+	isNoUser() bool
+}
+
+func isNoUser(err error) bool {
+	if nu, ok := err.(noUser); ok {
+		return nu.isNoUser()
+	} else {
+		return false
+	}
 }
 
 func getUsernameWithId(id int) (username string, err error) {
@@ -26,7 +60,7 @@ func getUsernameWithId(id int) (username string, err error) {
 	switch {
 	// ErrNoRows 不应该直接抛出，其带有业务含义，应在内部处理
 	case errors.Is(err, sql.ErrNoRows):
-		return "", errors.Errorf("no user with id %d", id)
+		return "", &ErrNoUser{userId: id}
 	case err != nil:
 		return "", errors.Wrapf(err, "query error: %v", err)
 	default:
