@@ -3,17 +3,23 @@ package service
 import (
 	"fmt"
 	"learning/project_demo/internal/biz"
+	pkgError "learning/project_demo/internal/pkg/error"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 )
 
 type GenericErrResp struct {
-	ErrorMsg string `json:"error_msg"`
+	ErrorMsg  string             `json:"error_msg"`
+	ErrorCode pkgError.ErrorCode `json:"error_code"`
 }
 
-func NewGenericErrResp(c echo.Context, err error) error {
-	return c.JSON(http.StatusOK, GenericErrResp{ErrorMsg: fmt.Sprintf("%v", err)})
+func NewGenericErrResp(c echo.Context, err error, code pkgError.ErrorCode) error {
+	return c.JSON(http.StatusOK, GenericErrResp{ErrorMsg: fmt.Sprintf("%v", err), ErrorCode: code})
+}
+
+func NewGenericOKResp(c echo.Context) error {
+	return c.JSON(http.StatusOK, GenericErrResp{ErrorMsg: "", ErrorCode: pkgError.OK})
 }
 
 type GetMenuReqV1 struct {
@@ -43,11 +49,11 @@ type MenuRespV1 struct {
 func (m *MenuService) GetMenuV1(c echo.Context) (err error) {
 	req := new(GetMenuReqV1)
 	if err = c.Bind(req); err != nil {
-		return NewGenericErrResp(c, err)
+		return NewGenericErrResp(c, err, pkgError.InvalidArgument)
 	}
 	menu, err := m.mc.GetMenu(c.Request().Context(), req.Id)
 	if nil != err {
-		return NewGenericErrResp(c, err)
+		return NewGenericErrResp(c, err, pkgError.Internal)
 	}
 	return c.JSON(http.StatusOK, GetMenuRespV1{
 		Menu: MenuRespV1{
@@ -75,13 +81,13 @@ type SaveMenuReqV1 struct {
 func (m *MenuService) SaveMenuV1(c echo.Context) (err error) {
 	req := new(SaveMenuReqV1)
 	if err = c.Bind(req); err != nil {
-		return NewGenericErrResp(c, err)
+		return NewGenericErrResp(c, err, pkgError.InvalidArgument)
 	}
 	if err := m.mc.SaveMenu(c.Request().Context(), &biz.Menu{
 		Id:   req.Menu.Id,
 		Name: req.Menu.Name,
 	}); nil != err {
-		return NewGenericErrResp(c, err)
+		return NewGenericErrResp(c, err, pkgError.Internal)
 	}
-	return NewGenericErrResp(c, nil)
+	return NewGenericOKResp(c)
 }
