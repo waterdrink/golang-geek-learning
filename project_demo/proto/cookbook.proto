@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+option go_package = "learning/project_demo/proto";
+
+service Menu {
+  rpc GetMenus(GetMenusInput) returns (GetMenusOutput) {}
+}
+
+message GetMenusInput {
+}
+
+message GetMenusOutput {
+  repeated MenuInfo menus = 1;
+}
+
+message MenuInfo {
+  int64 menuId = 1;
+  string menuName = 2; 
+}
