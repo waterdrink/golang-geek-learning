@@ -1,6 +1,8 @@
 package biz
 
-import "context"
+import (
+	"context"
+)
 
 type Menu struct {
 	Id   int
@@ -8,7 +10,7 @@ type Menu struct {
 }
 
 type MenuRepo interface {
-	GetMenu(ctx context.Context, id int) (menu *Menu, err error)
+	GetMenus(ctx context.Context) (menu []*Menu, err error)
 	SaveMenu(ctx context.Context, menu *Menu) (err error)
 }
 
@@ -22,8 +24,8 @@ func NewMenuUsecase(menuRepo MenuRepo) *MenuUsecase {
 	}
 }
 
-func (m *MenuUsecase) GetMenu(ctx context.Context, id int) (menu *Menu, err error) {
-	return m.MenuRepo.GetMenu(ctx, id)
+func (m *MenuUsecase) GetMenus(ctx context.Context) (menu []*Menu, err error) {
+	return m.MenuRepo.GetMenus(ctx)
 }
 
 func (m *MenuUsecase) SaveMenu(ctx context.Context, menu *Menu) (err error) {

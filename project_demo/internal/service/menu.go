@@ -1,12 +1,18 @@
 package service
 
 import (
+	"context"
 	"fmt"
 	"learning/project_demo/internal/biz"
 	pkgError "learning/project_demo/internal/pkg/error"
+	"learning/project_demo/proto"
+	"log"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 type GenericErrResp struct {
@@ -27,7 +33,7 @@ type GetMenuReqV1 struct {
 }
 
 type GetMenuRespV1 struct {
-	Menu MenuRespV1 `json:"menu" description:"menu"`
+	Menus []MenuRespV1 `json:"menu" description:"menu"`
 }
 
 type MenuRespV1 struct {
@@ -51,16 +57,59 @@ func (m *MenuService) GetMenuV1(c echo.Context) (err error) {
 	if err = c.Bind(req); err != nil {
 		return NewGenericErrResp(c, err, pkgError.InvalidArgument)
 	}
-	menu, err := m.mc.GetMenu(c.Request().Context(), req.Id)
+	menus, err := m.mc.GetMenus(c.Request().Context())
 	if nil != err {
 		return NewGenericErrResp(c, err, pkgError.Internal)
 	}
-	return c.JSON(http.StatusOK, GetMenuRespV1{
-		Menu: MenuRespV1{
+	otherMenus, err := m.getMenusFromOtherNode()
+	if nil != err {
+		return NewGenericErrResp(c, err, pkgError.Internal)
+	}
+
+	respMenus := []MenuRespV1{}
+	for _, menu := range append(menus, otherMenus...) {
+		respMenus = append(respMenus, MenuRespV1{
 			Id:   menu.Id,
 			Name: menu.Name,
-		},
-	})
+		})
+	}
+
+	return c.JSON(http.StatusOK, GetMenuRespV1{Menus: respMenus})
+}
+
+func (m *MenuService) getMenusFromOtherNode() (menus []*biz.Menu, err error) {
+	if m.mdnsServer == nil {
+		return nil, fmt.Errorf("mdns server is nil")
+	}
+
+	for _, addr := range m.mdnsServer.GetDiscoveredServiceAddr() {
+		log.Printf("start rpc call to %s\n", addr)
+		// Set up a connection to the server.
+		conn, err := grpc.Dial(fmt.Sprintf("%v:9008", addr), grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			log.Printf("did not connect: %v\n", err)
+			continue
+		}
+		defer conn.Close()
+		c := proto.NewMenuClient(conn)
+
+		// Contact the server and print out its response.
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		output, err := c.GetMenus(ctx, &proto.GetMenusInput{})
+		if err != nil {
+			log.Printf("could not get menus from %v: %v\n", addr, err)
+			continue
+		}
+		for _, m := range output.GetMenus() {
+			log.Printf("got menus from %v: %v", addr, m.MenuId)
+			menus = append(menus, &biz.Menu{
+				Id:   int(m.MenuId),
+				Name: m.MenuName,
+			})
+		}
+	}
+	return menus, nil
 }
 
 type SaveMenuReqV1 struct {

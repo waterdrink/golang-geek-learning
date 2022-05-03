@@ -2,6 +2,7 @@ package service
 
 import (
 	"learning/project_demo/internal/biz"
+	"learning/project_demo/internal/pkg/mdns"
 
 	"github.com/google/wire"
 )
@@ -10,7 +11,8 @@ import (
 var ProviderSet = wire.NewSet(NewMenuService)
 
 type MenuService struct {
-	mc *biz.MenuUsecase
+	mc         *biz.MenuUsecase
+	mdnsServer *mdns.MdnsService // mdns服务发现
 }
 
 // @title cookbook menu app
@@ -20,4 +22,8 @@ func NewMenuService(mc *biz.MenuUsecase) *MenuService {
 	return &MenuService{
 		mc: mc,
 	}
+}
+
+func (ms *MenuService) RegisterServiceDiscover(mdns *mdns.MdnsService) {
+	ms.mdnsServer = mdns
 }

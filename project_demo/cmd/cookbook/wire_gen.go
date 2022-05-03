@@ -10,6 +10,7 @@ import (
 	"learning/project_demo/internal/biz"
 	"learning/project_demo/internal/data"
 	"learning/project_demo/internal/service"
+	"learning/project_demo/internal/rpcservice"
 )
 
 // Injectors from wire.go:
@@ -19,6 +20,7 @@ func initCookbookApp() *cookbookApp {
 	menuRepo := data.NewMenuRepo()
 	menuUsecase := biz.NewMenuUsecase(menuRepo)
 	menuService := service.NewMenuService(menuUsecase)
-	mainCookbookApp := newCookbookApp(menuService)
+	menuRpcService := rpcservice.NewMenuRpcService(menuUsecase)
+	mainCookbookApp := newCookbookApp(menuService, menuRpcService)
 	return mainCookbookApp
 }
