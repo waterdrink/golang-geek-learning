@@ -16,3 +16,4 @@
 优点：灵活，包头上除了定义包体长度还能够定义一些其他的字段，比如序列号等，支持并发传输等高级功能
 
 # 实现一个从 socket connection 中解码出 goim 协议的解码器
+https://github.com/waterdrink/golang-geek-learning/blob/main/goim/main.go
